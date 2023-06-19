@@ -21,13 +21,38 @@
         }
 
         [AllowAnonymous]
-        public IActionResult AllHouses()
+        [HttpGet]
+        public async Task<IActionResult> All([FromQuery] AllHousesQueryModel query)
         {
-            return View();
+            var queryResult = await houseService.All(
+                                           query.Category,
+                                           query.SearchTerm,
+                                           query.Sorting,
+                                           query.CurrentPage,
+                                           AllHousesQueryModel.HousesPerPage
+                );
+            query.TotalHousesCount = queryResult.TotalHouseCount;
+            query.Houses = queryResult.Houses;
+            query.Categories = await houseService.AllCategoriesNames();           
+           
+            return View(query);
         }
-        public IActionResult MyHouses()
+        public async Task<IActionResult> MyHouses()
         {
-            return View();
+            IEnumerable<HouseServiceModel>? myHouses = null;
+
+            var userId = this.User.Id();
+            if (this.agentService.ExistsById(userId))
+        {
+                var currerntAgent = agentService.GetAgentId(userId);
+                myHouses = await houseService.AllHousesByAgentId(currerntAgent);
+        }
+            else
+        {
+                myHouses = await houseService.AllHousesByUserId(userId);
+            }
+
+            return View(myHouses);
         }
 
         public async Task<IActionResult> Add() 
